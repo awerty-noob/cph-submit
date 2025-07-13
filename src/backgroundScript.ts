@@ -44,4 +44,13 @@ const mainLoop = async () => {
     );
 };
 
-setInterval(mainLoop, config.loopTimeOut);
+
+chrome.alarms.create('cph-submit-alarm', {
+    periodInMinutes: 1 / 60,
+});
+
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+    if (alarm.name === 'cph-submit-alarm') {
+        await mainLoop();
+    }
+});

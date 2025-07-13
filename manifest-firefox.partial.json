@@ -5,6 +5,7 @@
     },
     "permissions": [
         "scripting",
+        "alarms",
         "*://localhost/*",
         "*://codeforces.com/*",
         "webNavigation"
