@@ -16,9 +16,12 @@ export const getSubmitUrl = (problemUrl: string) => {
     if (!isContestProblem(problemUrl)) {
         return config.cfSubmitPage.href;
     }
-    const url = new URL(problemUrl);
-    const contestNumber = url.pathname.split('/')[2];
-    const submitURL = `https://codeforces.com/contest/${contestNumber}/submit`;
+    // const url = new URL(problemUrl);
+    // const contestNumber = url.pathname.split('/')[2];
+    // const submitURL = `https://codeforces.com/contest/${contestNumber}/submit`;
+    // return submitURL;
+    const secondLastSlashIndex = problemUrl.lastIndexOf('/',problemUrl.lastIndexOf('/')-1);
+    const submitURL = problemUrl.substring(0,secondLastSlashIndex) + "/submit";
     return submitURL;
 };
 
