@@ -36,10 +36,33 @@ export const handleSubmit = async (
 
     log('isContestProblem', isContestProblem(problemUrl));
 
-    let tab = await chrome.tabs.create({
-        active: true,
-        url: getSubmitUrl(problemUrl),
-    });
+    const submitUrl = getSubmitUrl(problemUrl);
+    const tabs = await chrome.tabs.query({ url: 'https://codeforces.com/*' });
+
+    let tab;
+    let navigationExpected = false;
+
+    if (tabs.length > 0 && tabs[0].id) {
+        if (tabs[0].url !== submitUrl) {
+            navigationExpected = true;
+        }
+        try {
+            tab = await chrome.tabs.update(tabs[0].id, {
+                active: true,
+                url: submitUrl,
+            });
+        } catch (e) {
+            log('Failed to update tab, maybe it was closed. Creating a new one.', e);
+        }
+    }
+
+    if (!tab) {
+        navigationExpected = true;
+        tab = await chrome.tabs.create({
+            active: true,
+            url: submitUrl,
+        });
+    }
 
     const tabId = tab.id as number;
 
@@ -47,27 +70,41 @@ export const handleSubmit = async (
         focused: true,
     });
 
-    if (typeof browser !== 'undefined') {
-        await browser.tabs.executeScript(tab.id, {
-            file: '/dist/injectedScript.js',
+    const executePayload = async () => {
+        if (typeof browser !== 'undefined') {
+            await browser.tabs.executeScript(tabId, {
+                file: '/dist/injectedScript.js',
+            });
+        } else {
+            await chrome.scripting.executeScript({
+                target: {
+                    tabId,
+                    allFrames: true,
+                },
+                files: ['/dist/injectedScript.js'],
+            });
+        }
+        chrome.tabs.sendMessage(tabId, {
+            type: 'cph-submit',
+            problemName,
+            languageId,
+            sourceCode,
+            url: problemUrl,
         });
+        log('Sending message to tab with script');
+    };
+
+    if (navigationExpected) {
+        const listener = (id: number, info: any) => {
+            if (id === tabId && info.status === 'complete') {
+                chrome.tabs.onUpdated.removeListener(listener);
+                executePayload();
+            }
+        };
+        chrome.tabs.onUpdated.addListener(listener);
     } else {
-        await chrome.scripting.executeScript({
-            target: {
-                tabId,
-                allFrames: true,
-            },
-            files: ['/dist/injectedScript.js'],
-        });
+        executePayload();
     }
-    chrome.tabs.sendMessage(tabId, {
-        type: 'cph-submit',
-        problemName,
-        languageId,
-        sourceCode,
-        url: problemUrl,
-    });
-    log('Sending message to tab with script');
 
     const filter = {
         url: [{ urlContains: 'codeforces.com/problemset/status' }],
