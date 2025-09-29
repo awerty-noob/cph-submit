@@ -31,9 +31,35 @@ const handleData = (data: ContentScriptData) => {
         return;
     }
 
-    // Dont use problemName from data as it includes the contest number.
-    const problemName = data.url.split('/problem/')[1] ?? data.problemName;
+    const problemName = (data.url.split('/problem/')[1] ?? data.problemName).split('?')[0];
     problemIndexEl.value = problemName;
+
+    const changeEvent = new Event('change', { bubbles: true });
+    problemIndexEl.dispatchEvent(changeEvent);
+
+    const problemCodeEl = document.getElementsByName(
+        'submittedProblemCode',
+    )[0] as HTMLInputElement | undefined;
+
+    if (problemCodeEl) {
+        try {
+            const url = new URL(data.url);
+            const segments = url.pathname.split('/').filter(Boolean);
+            const problemSegmentIndex = segments.indexOf('problem');
+            const problemIndexValue =
+                problemSegmentIndex !== -1
+                    ? segments[problemSegmentIndex + 1]
+                    : undefined;
+            const contestIdCandidate =
+                problemSegmentIndex > 0 ? segments[problemSegmentIndex - 1] : undefined;
+
+            if (contestIdCandidate && problemIndexValue) {
+                problemCodeEl.value = `${contestIdCandidate}${problemIndexValue}`;
+            }
+        } catch (err) {
+            log('Failed to set problem code', err);
+        }
+    }
 
     log('Submitting problem');
     const submitBtn = document.querySelector('.submit') as HTMLButtonElement;
