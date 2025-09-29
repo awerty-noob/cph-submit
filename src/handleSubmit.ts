@@ -1,5 +1,4 @@
 // Code run when background script detects there is a problem to submit
-import config from './config';
 import log from './log';
 
 declare const browser: any;
@@ -9,20 +8,60 @@ if (typeof browser !== 'undefined') {
 }
 
 export const isContestProblem = (problemUrl: string) => {
-    return problemUrl.indexOf('contest') != -1;
+    try {
+        const url = new URL(problemUrl);
+        const segments = url.pathname.split('/').filter(Boolean);
+        const problemIndex = segments.indexOf('problem');
+
+        if (problemIndex === -1) {
+            return false;
+        }
+
+        const scope = segments[0];
+
+        return scope === 'contest' || scope === 'gym' || scope === 'group';
+    } catch (e) {
+        return false;
+    }
 };
 
 export const getSubmitUrl = (problemUrl: string) => {
-    if (!isContestProblem(problemUrl)) {
-        return config.cfSubmitPage.href;
+    try {
+        const url = new URL(problemUrl);
+        const segments = url.pathname.split('/').filter(Boolean);
+        const problemIndex = segments.indexOf('problem');
+
+        if (problemIndex === -1) {
+            return problemUrl;
+        }
+
+        if (segments[0] === 'problemset') {
+            const contestId = segments[2];
+
+            if (contestId) {
+                url.pathname = `/contest/${contestId}/submit`;
+                url.search = '';
+                url.hash = '';
+                return url.toString();
+            }
+
+            return problemUrl;
+        }
+
+        const baseSegments = segments.slice(0, problemIndex);
+
+        if (baseSegments.length === 0) {
+            return problemUrl;
+        }
+
+        url.pathname = `/${baseSegments.join('/')}/submit`;
+        url.search = '';
+        url.hash = '';
+
+        return url.toString();
+    } catch (e) {
+        return problemUrl;
     }
-    // const url = new URL(problemUrl);
-    // const contestNumber = url.pathname.split('/')[2];
-    // const submitURL = `https://codeforces.com/contest/${contestNumber}/submit`;
-    // return submitURL;
-    const secondLastSlashIndex = problemUrl.lastIndexOf('/',problemUrl.lastIndexOf('/')-1);
-    const submitURL = problemUrl.substring(0,secondLastSlashIndex) + "/submit";
-    return submitURL;
 };
 
 /** Opens the codefoces submit page and injects script to submit code. */
@@ -109,28 +148,4 @@ export const handleSubmit = async (
         executePayload();
     }
 
-    const filter = {
-        url: [{ urlContains: 'codeforces.com/problemset/status' }],
-    };
-
-    log('Adding nav listener');
-
-    chrome.webNavigation.onCommitted.addListener((args) => {
-        log('Navigation about to happen');
-
-        if (args.tabId === tab.id) {
-            log('Our tab is navigating');
-
-            // const url = new URL(args.url);
-            // const searchParams = new URLSearchParams(url.search);
-
-            // if (searchParams.has("friends")) {
-            //   return;
-            // }
-
-            // log("Navigating to friends mode");
-
-            // chrome.tabs.update(args.tabId, { url: args.url + "?friends=on" });
-        }
-    }, filter);
 };
