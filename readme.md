@@ -7,9 +7,7 @@ Available for Firefox and Google Chrome.
 
 ## Installation
 
-[Mozilla Firefox](https://addons.mozilla.org/en-US/firefox/addon/cph-submit/)
-
-[Google Chrome](https://chromewebstore.google.com/detail/cph-submit/ekplnobooikgpdbobcciehbhcmlklgnc)
+[Release](https://github.com/awerty-noob/cph-submit/releases)
 
 Install the extension using the above links, and keep the browser window open when you want to submit from cph in VS Code.
 
